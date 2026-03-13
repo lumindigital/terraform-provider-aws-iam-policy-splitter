@@ -1,0 +1,93 @@
+name: template-go
+
+modules:
+  - name: github.com/Lumin-Digital/stencil-flavor-go
+    version: v0.2.0
+
+arguments:
+  lumin_repo_name: template-go
+  lumin_flavor: Go
+  lumin_doc_repo_description: |-
+    TEMPLATE REPO - Go template repo
+  github_primary_team: Site Reliability Engineers
+  github_additional_teams: []
+  dependabot_config_ecosystems:
+    - gomod
+    - docker
+    - github-actions
+  readme_full_doc_about: |-
+    This is a `stencil`-managed [Github template repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) for Go projects.
+    Once the repository has been provisioned from this template, `stencil` will manage the configuration contained therein to ensure that it remains up-to-date with the latest, Lumin-defined best practices and conventions.
+    Configuration for `stencil` can be found in [`stencil.yaml`](./stencil.yaml) at the root of the repository.
+    Default values should suffice for most use-cases, but can be set/overridden as needed.
+    Setting, at least, the following values is recommended:
+    - `lumin_repo_name`
+    - `lumin_doc_repo_description`
+    - `github_primary_team`
+  # dependabot_enabled: true
+  # gitattributes_enabled: true
+  # gitattributes_config_flavors:
+  #   - Common
+  #   - VSCode
+  #   - Vim
+  # github_workflows_enabled: true
+  # github_workflows_rendered_test_enabled: false
+  # github_workflows_build_goreleaser_enabled: true
+  # github_workflows_superlinter_enabled: true
+  # github_workflows_test_go_enabled: true
+  # gitignore_enabled: true
+  # gitleaks_enabled: true
+  # gitleaks_config_additional_allowlist_regexes: []
+  # gitleaks_config_additional_stopwords: []
+  # gitlint_enabled: true
+  # goreleaser_enabled: true
+  # goreleaser_config_global_project_name: template-go
+  # goreleaser_config_builds_id: template-go
+  # goreleaser_config_builds_binary: template-go
+  # goreleaser_config_universal_binaries_id: template-go
+  # goreleaser_config_archives_id: template-go
+  # goreleaser_config_archives_builds:
+  #   - template-go
+  # goreleaser_config_release_github_name: template-go
+  # goreleaser_config_homebrew_formula_name: template-go
+  # goreleaser_config_homebrew_formula_caveats: template-go
+  # goreleaser_config_homebrew_formula_homepage: https://github.com/Lumin-Digital/template-go
+  # goreleaser_config_homebrew_formula_description: FORMULA DESCRIPTION - template-go
+  # goreleaser_config_homebrew_formula_test: |-
+  #   assert_match /Usage of template-go:/, shell_output("#{bin}/template-go -h", 0)
+  # goreleaser_config_homebrew_formula_install: |-
+  #   bin.install "template-go"
+  # jscpd_enabled: true
+  # pre_commit_enabled: true
+  # prettier_enabled: true
+  # readme_enabled: true
+  # readme_style: full
+  # readme_full_doc_about: |-
+  #   README ABOUT - template-go
+  # readme_full_doc_prerequisites: |-
+  #   - Go 1.16 or later
+  #   - Git
+  #   - Docker (optional)
+  #   - Homebrew (optional)
+  # readme_full_doc_installation_and_setup: |-
+  #   ```bash
+  #   gh repo clone Lumin-Digital/template-go
+  #   cd template-go
+  #   ```
+
+  #   1. Clone this repository
+  #   2. Install the required dependencies
+  #   3. Run the application
+  # readme_full_include_additional_setup: true
+  # readme_full_doc_additional_setup: |-
+  #   ### Homebrew
+
+  #   Install `template-go` via `homebrew`:
+
+  #   ```bash
+  #   export HOMEBREW_GITHUB_API_TOKEN=<PAT> #Or set in shell's RC
+  #   brew tap Lumin-Digital/homebrew-tap git@github.com:Lumin-Digital/homebrew-tap.git
+  #   brew install template-go
+  #   ```
+  # superlinter_enabled: true
+  # superlinter_config_filter_regex_exclude: .github/linters/super_linter.env
