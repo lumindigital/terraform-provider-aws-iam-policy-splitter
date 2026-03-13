@@ -27,9 +27,13 @@ repos:
       - id: check-executables-have-shebangs
       - id: forbid-submodules
   - repo: https://github.com/oxsecurity/megalinter
-    rev: v8.3.0
+    rev: v9.4.0
     hooks:
-      - id: megalinter-incremental
+      - id: megalinter-incremental # Faster, less thorough
         stages:
           - pre-commit
-
+      - id: megalinter-full # Slower, more thorough
+        stages:
+          - pre-push
+    language_version: v25.8.0
+exclude: ./ralph.*

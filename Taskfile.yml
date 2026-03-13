@@ -1,0 +1,37 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  local:build:
+    cmds:
+      - go build -v ./...
+    silent: true
+  local:test:
+    cmds:
+      - go test -v -cover -timeout=120s -parallel=10 ./...
+  local:lint:
+    cmds:
+      - golangci-lint run --fix ./...
+  local:fmt:
+    cmds:
+      - gofmt -s -w -e .
+  local:generate:
+    cmds:
+      - cd tools; go generate ./...
+  local:testacc:
+    cmds:
+      - TF_ACC=1 go test -v -cover -timeout 120m ./...
+  local:install:
+    cmds:
+      - go install -v ./...
+  local:all:
+    cmds:
+      - task: local:fmt
+      - task: local:lint
+      - task: local:test
+      - task: local:testacc
+      - task: local:build
+      - task: local:install
+      - task: local:generate
+      - echo "All tasks completed successfully."
