@@ -16,18 +16,18 @@ import (
 //
 //nolint:unused,gochecknoglobals //todo
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(internalProvider.New("test")()),
+	"aws-iam-policy-splitter": providerserver.NewProtocol6WithError(internalProvider.New("test")()),
 }
 
-// testAccProtoV6ProviderFactoriesWithEcho includes the echo provider alongside the scaffolding provider.
+// testAccProtoV6ProviderFactoriesWithEcho includes the echo provider alongside the main provider.
 // It allows for testing assertions on data returned by an ephemeral resource during Open.
 // The echoprovider is used to arrange tests by echoing ephemeral data into the Terraform state.
 // This lets the data be referenced in test assertions with state checks.
 //
 //nolint:unused,gochecknoglobals //todo
 var testAccProtoV6ProviderFactoriesWithEcho = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(internalProvider.New("test")()),
-	"echo":        echoprovider.NewProviderServer(),
+	"aws-iam-policy-splitter": providerserver.NewProtocol6WithError(internalProvider.New("test")()),
+	"echo":                    echoprovider.NewProviderServer(),
 }
 
 //nolint:unused //todo

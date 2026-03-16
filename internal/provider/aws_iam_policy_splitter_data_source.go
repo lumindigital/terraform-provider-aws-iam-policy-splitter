@@ -2,13 +2,17 @@ package provider
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
-	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	"github.com/Lumin-Digital/terraform-aws-iam-policy-splitter/internal/binpack"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -19,22 +23,14 @@ func NewAwsIamPolicySplitterDataSource() datasource.DataSource {
 }
 
 // AwsIamPolicySplitterDataSource defines the data source implementation.
-type AwsIamPolicySplitterDataSource struct {
-	client *http.Client
-}
-
-// AwsIamPolicySplitterDataSourceModel describes the data source data model.
-type AwsIamPolicySplitterDataSourceModel struct {
-	ConfigurableAttribute types.String `tfsdk:"configurable_attribute"`
-	ID                    types.String `tfsdk:"id"`
-}
+type AwsIamPolicySplitterDataSource struct{}
 
 func (d *AwsIamPolicySplitterDataSource) Metadata(
 	_ context.Context,
 	req datasource.MetadataRequest,
 	resp *datasource.MetadataResponse,
 ) {
-	resp.TypeName = req.ProviderTypeName + "_example"
+	resp.TypeName = req.ProviderTypeName + "_data_source"
 }
 
 func (d *AwsIamPolicySplitterDataSource) Schema(
@@ -43,47 +39,69 @@ func (d *AwsIamPolicySplitterDataSource) Schema(
 	resp *datasource.SchemaResponse,
 ) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Takes a list of iam policy documents and splits them into multiple policies if they exceed the AWS size limits. Uses a binpacking algorithm to split the policies as efficiently as possible. Attempts to split policies in a way that keeps like policies together",
+		MarkdownDescription: "Takes a list of IAM policy JSON strings and splits them into bins using a best-fit decreasing bin packing algorithm. Useful for distributing policies across IAM roles while respecting AWS size limits.",
 
 		Attributes: map[string]schema.Attribute{
-			"configurable_attribute": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Optional:            true,
-			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "Unique identifier for this data source instance",
 				Computed:            true,
+			},
+			"json_policies": schema.ListAttribute{
+				MarkdownDescription: "List of IAM policy JSON strings to split across bins",
+				Required:            true,
+				ElementType:         types.StringType,
+			},
+			"bin_size": schema.Int64Attribute{
+				MarkdownDescription: "Maximum total character length per bin (default: 6144)",
+				Optional:            true,
+				Computed:            true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+			},
+			"max_bins": schema.Int64Attribute{
+				MarkdownDescription: "Maximum number of bins to distribute policies into (default: 10)",
+				Optional:            true,
+				Computed:            true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+			},
+			"policy_bins": schema.ListNestedAttribute{
+				MarkdownDescription: "Result of bin packing: a list of bins, each containing a list of policy ARN strings",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"arns": schema.ListAttribute{
+							Computed:    true,
+							ElementType: types.StringType,
+						},
+					},
+				},
 			},
 		},
 	}
 }
 
+// PolicyBinModel represents a single bin in the output.
+type PolicyBinModel struct {
+	Arns []types.String `tfsdk:"arns"`
+}
+
+// AwsIamPolicySplitterModel describes the data source data model.
+type AwsIamPolicySplitterModel struct {
+	ID           types.String     `tfsdk:"id"`
+	JsonPolicies []types.String   `tfsdk:"json_policies"`
+	BinSize      types.Int64      `tfsdk:"bin_size"`
+	MaxBins      types.Int64      `tfsdk:"max_bins"`
+	PolicyBins   []PolicyBinModel `tfsdk:"policy_bins"`
+}
+
 func (d *AwsIamPolicySplitterDataSource) Configure(
 	_ context.Context,
-	req datasource.ConfigureRequest,
-	resp *datasource.ConfigureResponse,
+	_ datasource.ConfigureRequest,
+	_ *datasource.ConfigureResponse,
 ) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
-		return
-	}
-
-	client, ok := req.ProviderData.(*http.Client)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
-			fmt.Sprintf(
-				"Expected *http.Client, got: %T. Please report this issue to the provider developers.",
-				req.ProviderData,
-			),
-		)
-
-		return
-	}
-
-	d.client = client
 }
 
 func (d *AwsIamPolicySplitterDataSource) Read(
@@ -91,31 +109,67 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 	req datasource.ReadRequest,
 	resp *datasource.ReadResponse,
 ) {
-	var data AwsIamPolicySplitterDataSourceModel
+	var data AwsIamPolicySplitterModel
 
-	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := d.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
+	// Apply defaults
+	binSize := int64(6144)
+	if !data.BinSize.IsNull() && !data.BinSize.IsUnknown() {
+		binSize = data.BinSize.ValueInt64()
+	}
+	data.BinSize = types.Int64Value(binSize)
 
-	// For the purposes of this example code, hardcoding a response value to
-	// save into the Terraform state.
-	data.ID = types.StringValue("example-id")
+	maxBins := int64(10)
+	if !data.MaxBins.IsNull() && !data.MaxBins.IsUnknown() {
+		maxBins = data.MaxBins.ValueInt64()
+	}
+	data.MaxBins = types.Int64Value(maxBins)
 
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "read a data source")
+	// Convert policy ARNs to plain strings
+	items := make([]string, len(data.JsonPolicies))
+	for i, arn := range data.JsonPolicies {
+		items[i] = arn.ValueString()
+	}
 
-	// Save data into Terraform state
+	tflog.Debug(ctx, "binpacking policy ARNs", map[string]interface{}{
+		"count":    len(items),
+		"bin_size": binSize,
+		"max_bins": maxBins,
+	})
+
+	// Run bin packing
+	bins, err := binpack.BestFit(items, int(maxBins), int(binSize))
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Bin Packing Error",
+			fmt.Sprintf("Failed to distribute policy ARNs into bins: %s", err),
+		)
+		return
+	}
+
+	// Convert bins to output model (skip empty bins)
+	data.PolicyBins = []PolicyBinModel{}
+	for _, bin := range bins {
+		if len(bin.Items) == 0 {
+			continue
+		}
+		arnValues := make([]types.String, len(bin.Items))
+		for i, item := range bin.Items {
+			arnValues[i] = types.StringValue(item)
+		}
+		data.PolicyBins = append(data.PolicyBins, PolicyBinModel{Arns: arnValues})
+	}
+
+	// Generate deterministic ID from inputs
+	h := sha256.New()
+	for _, item := range items {
+		h.Write([]byte(item))
+	}
+	data.ID = types.StringValue(fmt.Sprintf("%x", h.Sum(nil))[:16])
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

@@ -26,3 +26,4 @@ task local:fmt && task local:lint
 - This is a a standalone golang application
 - Tests use golang's native testing framework
 - Update this file when build process changes
+

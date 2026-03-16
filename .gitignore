@@ -340,3 +340,5 @@ linter-output/
 ########## END Linters ########
 ###############################
 bin/
+.claude/
+.ralph/
