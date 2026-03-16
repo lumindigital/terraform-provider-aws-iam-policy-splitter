@@ -46,7 +46,11 @@ func BestFit(items []string, numBins int, binSize int) ([]Bin, error) {
 // (e.g., IAM policies where whitespace doesn't count toward the size limit).
 func BestFitWithSizes(items []string, sizes []int, numBins int, binSize int) ([]Bin, error) {
 	if len(items) != len(sizes) {
-		return nil, fmt.Errorf("items and sizes must have the same length: got %d items and %d sizes", len(items), len(sizes))
+		return nil, fmt.Errorf(
+			"items and sizes must have the same length: got %d items and %d sizes",
+			len(items),
+			len(sizes),
+		)
 	}
 	if numBins <= 0 {
 		return nil, fmt.Errorf("numBins must be positive, got %d", numBins)
@@ -58,7 +62,12 @@ func BestFitWithSizes(items []string, sizes []int, numBins int, binSize int) ([]
 	// Validate all items fit in a single bin.
 	for i, item := range items {
 		if sizes[i] > binSize {
-			return nil, fmt.Errorf("item of size %d exceeds bin size %d (prefix: %q)", sizes[i], binSize, truncate(item, 50))
+			return nil, fmt.Errorf(
+				"item of size %d exceeds bin size %d (prefix: %q)",
+				sizes[i],
+				binSize,
+				truncate(item, 50),
+			)
 		}
 	}
 

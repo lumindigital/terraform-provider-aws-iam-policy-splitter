@@ -150,6 +150,56 @@ data "aws-iam-policy-splitter_data_source" "test" {
 	})
 }
 
+func TestAccAwsIamPolicySplitterDataSource_policiesPreservedExactly(t *testing.T) {
+	// Verifies that each policy in json_policies appears in policy_bins
+	// with exact content preserved, including all whitespace.
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+data "aws-iam-policy-splitter_data_source" "test" {
+  json_policies = [
+    "{  \"Version\":  \"2012-10-17\",  \"Statement\":  [  ]  }",
+    "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": \"s3:GetObject\",\n      \"Resource\": \"*\"\n    }\n  ]\n}"
+  ]
+  bin_size = 6144
+  max_bins = 1
+}
+`,
+				ConfigStateChecks: []statecheck.StateCheck{
+					// Exactly 1 bin
+					statecheck.ExpectKnownValue(
+						"data.aws-iam-policy-splitter_data_source.test",
+						tfjsonpath.New("policy_bins"),
+						knownvalue.ListSizeExact(1),
+					),
+					// The bin contains exactly 2 policies
+					statecheck.ExpectKnownValue(
+						"data.aws-iam-policy-splitter_data_source.test",
+						tfjsonpath.New("policy_bins").AtSliceIndex(0).AtMapKey("policies"),
+						knownvalue.ListSizeExact(2),
+					),
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Verify each policy is preserved exactly (including whitespace).
+					// The bin packer sorts by size descending, so the larger policy comes first.
+					resource.TestCheckResourceAttr(
+						"data.aws-iam-policy-splitter_data_source.test",
+						"policy_bins.0.policies.0",
+						"{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": \"s3:GetObject\",\n      \"Resource\": \"*\"\n    }\n  ]\n}",
+					),
+					resource.TestCheckResourceAttr(
+						"data.aws-iam-policy-splitter_data_source.test",
+						"policy_bins.0.policies.1",
+						"{  \"Version\":  \"2012-10-17\",  \"Statement\":  [  ]  }",
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAwsIamPolicySplitterDataSource_emptyPolicies(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

@@ -190,7 +190,7 @@ func TestBestFitWithSizes_WhitespacePolicyFits(t *testing.T) {
 	// A policy with lots of whitespace that would exceed bin size by raw length,
 	// but fits when whitespace is excluded from sizing.
 	policy := `{  "Version":  "2012-10-17",  "Statement":  []  }` // 50 chars raw
-	strippedSize := 38                                              // without whitespace
+	strippedSize := 38                                            // without whitespace
 
 	bins, err := binpack.BestFitWithSizes([]string{policy}, []int{strippedSize}, 1, 40)
 	if err != nil {

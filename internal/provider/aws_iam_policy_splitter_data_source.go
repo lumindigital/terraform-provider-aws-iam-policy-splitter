@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -149,7 +150,7 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 		sizes[i] = len(stripped)
 	}
 
-	tflog.Debug(ctx, "binpacking IAM policy JSON strings", map[string]interface{}{
+	tflog.Debug(ctx, "binpacking IAM policy JSON strings", map[string]any{
 		"count":    len(items),
 		"bin_size": binSize,
 		"max_bins": maxBins,
@@ -183,7 +184,7 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 	for _, item := range items {
 		h.Write([]byte(item))
 	}
-	data.ID = types.StringValue(fmt.Sprintf("%x", h.Sum(nil))[:16])
+	data.ID = types.StringValue(hex.EncodeToString(h.Sum(nil))[:16])
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
