@@ -123,6 +123,33 @@ data "aws-iam-policy-splitter_data_source" "test" {
 	})
 }
 
+func TestAccAwsIamPolicySplitterDataSource_whitespaceNotCounted(t *testing.T) {
+	// A policy with whitespace whose raw length (50) exceeds bin_size (40),
+	// but stripped length (38) fits within the bin. This verifies that
+	// whitespace is excluded from size calculations.
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+data "aws-iam-policy-splitter_data_source" "test" {
+  json_policies = ["{  \"Version\":  \"2012-10-17\",  \"Statement\":  []  }"]
+  bin_size    = 40
+  max_bins    = 1
+}
+`,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"data.aws-iam-policy-splitter_data_source.test",
+						tfjsonpath.New("policy_bins"),
+						knownvalue.ListSizeExact(1),
+					),
+				},
+			},
+		},
+	})
+}
+
 func TestAccAwsIamPolicySplitterDataSource_emptyPolicies(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

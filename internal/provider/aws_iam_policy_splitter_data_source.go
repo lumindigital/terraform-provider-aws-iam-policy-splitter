@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -136,14 +137,26 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 		items[i] = policy.ValueString()
 	}
 
+	// Compute effective sizes without whitespace (IAM policies ignore whitespace for size limits)
+	sizes := make([]int, len(items))
+	for i, item := range items {
+		stripped := strings.Map(func(r rune) rune {
+			if r == ' ' || r == '\t' || r == '\n' || r == '\r' {
+				return -1
+			}
+			return r
+		}, item)
+		sizes[i] = len(stripped)
+	}
+
 	tflog.Debug(ctx, "binpacking IAM policy JSON strings", map[string]interface{}{
 		"count":    len(items),
 		"bin_size": binSize,
 		"max_bins": maxBins,
 	})
 
-	// Run bin packing
-	bins, err := binpack.BestFit(items, int(maxBins), int(binSize))
+	// Run bin packing using whitespace-stripped sizes for capacity, but original items for storage
+	bins, err := binpack.BestFitWithSizes(items, sizes, int(maxBins), int(binSize))
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Bin Packing Error",

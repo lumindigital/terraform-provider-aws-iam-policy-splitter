@@ -32,6 +32,22 @@ func (b *Bin) TotalLength() int {
 // Returns an error if any single string exceeds binSize or if the strings
 // cannot fit within the given number of bins.
 func BestFit(items []string, numBins int, binSize int) ([]Bin, error) {
+	sizes := make([]int, len(items))
+	for i, item := range items {
+		sizes[i] = len(item)
+	}
+	return BestFitWithSizes(items, sizes, numBins, binSize)
+}
+
+// BestFitWithSizes distributes items across bins using explicitly provided sizes
+// for capacity calculations. The actual items stored in bins are the original strings,
+// but the packing algorithm uses the corresponding sizes[] values to determine fit.
+// This is useful when the effective size of an item differs from its string length
+// (e.g., IAM policies where whitespace doesn't count toward the size limit).
+func BestFitWithSizes(items []string, sizes []int, numBins int, binSize int) ([]Bin, error) {
+	if len(items) != len(sizes) {
+		return nil, fmt.Errorf("items and sizes must have the same length: got %d items and %d sizes", len(items), len(sizes))
+	}
 	if numBins <= 0 {
 		return nil, fmt.Errorf("numBins must be positive, got %d", numBins)
 	}
@@ -40,17 +56,23 @@ func BestFit(items []string, numBins int, binSize int) ([]Bin, error) {
 	}
 
 	// Validate all items fit in a single bin.
-	for _, item := range items {
-		if len(item) > binSize {
-			return nil, fmt.Errorf("item of length %d exceeds bin size %d (prefix: %q)", len(item), binSize, truncate(item, 50))
+	for i, item := range items {
+		if sizes[i] > binSize {
+			return nil, fmt.Errorf("item of size %d exceeds bin size %d (prefix: %q)", sizes[i], binSize, truncate(item, 50))
 		}
 	}
 
-	// Sort items by length descending (best-fit decreasing).
-	sorted := make([]string, len(items))
-	copy(sorted, items)
-	sort.Slice(sorted, func(i, j int) bool {
-		return len(sorted[i]) > len(sorted[j])
+	// Build index pairs and sort by size descending (best-fit decreasing).
+	type indexedItem struct {
+		item string
+		size int
+	}
+	sortedItems := make([]indexedItem, len(items))
+	for i := range items {
+		sortedItems[i] = indexedItem{item: items[i], size: sizes[i]}
+	}
+	sort.Slice(sortedItems, func(i, j int) bool {
+		return sortedItems[i].size > sortedItems[j].size
 	})
 
 	// Initialize bins.
@@ -60,18 +82,18 @@ func BestFit(items []string, numBins int, binSize int) ([]Bin, error) {
 	}
 
 	// Place each item in the best-fit bin.
-	for _, item := range sorted {
-		bestIdx := findBestFitBin(bins, len(item))
+	for _, si := range sortedItems {
+		bestIdx := findBestFitBin(bins, si.size)
 
 		if bestIdx < 0 {
 			return nil, fmt.Errorf(
-				"cannot fit item of length %d into %d bins of size %d (prefix: %q)",
-				len(item), numBins, binSize, truncate(item, 50),
+				"cannot fit item of size %d into %d bins of size %d (prefix: %q)",
+				si.size, numBins, binSize, truncate(si.item, 50),
 			)
 		}
 
-		bins[bestIdx].Items = append(bins[bestIdx].Items, item)
-		bins[bestIdx].RemainingSize -= len(item)
+		bins[bestIdx].Items = append(bins[bestIdx].Items, si.item)
+		bins[bestIdx].RemainingSize -= si.size
 	}
 
 	return bins, nil

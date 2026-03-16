@@ -145,6 +145,62 @@ func TestBestFit_ErrorMessageTruncation(t *testing.T) {
 	}
 }
 
+func TestBestFitWithSizes_UsesProvidedSizes(t *testing.T) {
+	t.Parallel()
+
+	// Items have whitespace, but sizes reflect stripped length.
+	// "ab cd" is 5 chars raw, but effective size is 4 (no space).
+	// "efgh" is 4 chars raw, effective size is 4.
+	// With binSize=5, both fit in one bin if we use stripped sizes (4+4=8 > 5, needs 2 bins).
+	// With binSize=8, both fit in one bin using stripped sizes.
+	items := []string{"ab cd", "efgh"}
+	sizes := []int{4, 4} // stripped sizes
+	bins, err := binpack.BestFitWithSizes(items, sizes, 1, 8)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Both items should be in the single bin.
+	if len(bins[0].Items) != 2 {
+		t.Errorf("expected 2 items in bin, got %d", len(bins[0].Items))
+	}
+	// Original items (with whitespace) should be preserved.
+	found := false
+	for _, item := range bins[0].Items {
+		if item == "ab cd" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("original item 'ab cd' with whitespace should be preserved in bin")
+	}
+}
+
+func TestBestFitWithSizes_MismatchedLengths(t *testing.T) {
+	t.Parallel()
+
+	_, err := binpack.BestFitWithSizes([]string{"a", "b"}, []int{1}, 1, 10)
+	if err == nil {
+		t.Fatal("expected error for mismatched items/sizes lengths")
+	}
+}
+
+func TestBestFitWithSizes_WhitespacePolicyFits(t *testing.T) {
+	t.Parallel()
+
+	// A policy with lots of whitespace that would exceed bin size by raw length,
+	// but fits when whitespace is excluded from sizing.
+	policy := `{  "Version":  "2012-10-17",  "Statement":  []  }` // 50 chars raw
+	strippedSize := 38                                              // without whitespace
+
+	bins, err := binpack.BestFitWithSizes([]string{policy}, []int{strippedSize}, 1, 40)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if bins[0].Items[0] != policy {
+		t.Errorf("expected original policy preserved, got %q", bins[0].Items[0])
+	}
+}
+
 func TestBin_TotalLength(t *testing.T) {
 	t.Parallel()
 
