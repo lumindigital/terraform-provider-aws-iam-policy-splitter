@@ -68,13 +68,14 @@ func (d *AwsIamPolicySplitterDataSource) Schema(
 				},
 			},
 			"policy_bins": schema.ListNestedAttribute{
-				MarkdownDescription: "Result of bin packing: a list of bins, each containing a list of policy ARN strings",
+				MarkdownDescription: "Result of bin packing: a list of bins, each containing a list of IAM policy JSON strings",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"arns": schema.ListAttribute{
-							Computed:    true,
-							ElementType: types.StringType,
+						"policies": schema.ListAttribute{
+							MarkdownDescription: "List of IAM policy JSON strings assigned to this bin",
+							Computed:            true,
+							ElementType:         types.StringType,
 						},
 					},
 				},
@@ -85,7 +86,7 @@ func (d *AwsIamPolicySplitterDataSource) Schema(
 
 // PolicyBinModel represents a single bin in the output.
 type PolicyBinModel struct {
-	Arns []types.String `tfsdk:"arns"`
+	Policies []types.String `tfsdk:"policies"`
 }
 
 // AwsIamPolicySplitterModel describes the data source data model.
@@ -129,13 +130,13 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 	}
 	data.MaxBins = types.Int64Value(maxBins)
 
-	// Convert policy ARNs to plain strings
+	// Convert policy JSON strings to plain strings
 	items := make([]string, len(data.JsonPolicies))
-	for i, arn := range data.JsonPolicies {
-		items[i] = arn.ValueString()
+	for i, policy := range data.JsonPolicies {
+		items[i] = policy.ValueString()
 	}
 
-	tflog.Debug(ctx, "binpacking policy ARNs", map[string]interface{}{
+	tflog.Debug(ctx, "binpacking IAM policy JSON strings", map[string]interface{}{
 		"count":    len(items),
 		"bin_size": binSize,
 		"max_bins": maxBins,
@@ -146,7 +147,7 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Bin Packing Error",
-			fmt.Sprintf("Failed to distribute policy ARNs into bins: %s", err),
+			fmt.Sprintf("Failed to distribute policies into bins: %s", err),
 		)
 		return
 	}
@@ -157,11 +158,11 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 		if len(bin.Items) == 0 {
 			continue
 		}
-		arnValues := make([]types.String, len(bin.Items))
+		policyValues := make([]types.String, len(bin.Items))
 		for i, item := range bin.Items {
-			arnValues[i] = types.StringValue(item)
+			policyValues[i] = types.StringValue(item)
 		}
-		data.PolicyBins = append(data.PolicyBins, PolicyBinModel{Arns: arnValues})
+		data.PolicyBins = append(data.PolicyBins, PolicyBinModel{Policies: policyValues})
 	}
 
 	// Generate deterministic ID from inputs
