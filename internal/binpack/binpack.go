@@ -42,7 +42,7 @@ func BestFit(items []string, numBins int, binSize int) ([]Bin, error) {
 	// Validate all items fit in a single bin.
 	for _, item := range items {
 		if len(item) > binSize {
-			return nil, fmt.Errorf("item %q (length %d) exceeds bin size %d", item, len(item), binSize)
+			return nil, fmt.Errorf("item of length %d exceeds bin size %d (prefix: %q)", len(item), binSize, truncate(item, 50))
 		}
 	}
 
@@ -65,8 +65,8 @@ func BestFit(items []string, numBins int, binSize int) ([]Bin, error) {
 
 		if bestIdx < 0 {
 			return nil, fmt.Errorf(
-				"cannot fit item %q (length %d) into %d bins of size %d",
-				item, len(item), numBins, binSize,
+				"cannot fit item of length %d into %d bins of size %d (prefix: %q)",
+				len(item), numBins, binSize, truncate(item, 50),
 			)
 		}
 
@@ -92,4 +92,12 @@ func findBestFitBin(bins []Bin, itemSize int) int {
 	}
 
 	return bestIdx
+}
+
+// truncate returns the first maxLen characters of s, appending "..." if truncated.
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }

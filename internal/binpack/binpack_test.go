@@ -1,6 +1,7 @@
 package binpack_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Lumin-Digital/terraform-aws-iam-policy-splitter/internal/binpack"
@@ -119,6 +120,28 @@ func TestBestFit_BestFitBehavior(t *testing.T) {
 		if b.RemainingSize != 0 {
 			t.Errorf("bin %d has %d remaining, expected 0", i, b.RemainingSize)
 		}
+	}
+}
+
+func TestBestFit_ErrorMessageTruncation(t *testing.T) {
+	t.Parallel()
+
+	// Create a long item that exceeds bin size — error should not contain the full string.
+	longItem := make([]byte, 200)
+	for i := range longItem {
+		longItem[i] = 'x'
+	}
+	_, err := binpack.BestFit([]string{string(longItem)}, 2, 5)
+	if err == nil {
+		t.Fatal("expected error for oversized item")
+	}
+	// The error should contain a truncated prefix, not the full 200-char string.
+	errMsg := err.Error()
+	if len(errMsg) > 150 {
+		t.Errorf("error message is too long (%d chars), may be leaking full item content", len(errMsg))
+	}
+	if !strings.Contains(errMsg, "prefix:") {
+		t.Error("error message should contain 'prefix:' indicating truncation")
 	}
 }
 
