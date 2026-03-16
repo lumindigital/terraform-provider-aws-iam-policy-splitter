@@ -17,6 +17,13 @@ import (
 	"github.com/Lumin-Digital/terraform-aws-iam-policy-splitter/internal/binpack"
 )
 
+const (
+	// defaultBinSize is the default maximum character length per bin (AWS IAM policy size limit).
+	defaultBinSize = 6144
+	// defaultMaxBins is the default maximum number of bins to distribute policies into.
+	defaultMaxBins = 10
+)
+
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ datasource.DataSource = &AwsIamPolicySplitterDataSource{}
 
@@ -94,7 +101,7 @@ type PolicyBinModel struct {
 // AwsIamPolicySplitterModel describes the data source data model.
 type AwsIamPolicySplitterModel struct {
 	ID           types.String     `tfsdk:"id"`
-	JsonPolicies []types.String   `tfsdk:"json_policies"`
+	JSONPolicies []types.String   `tfsdk:"json_policies"`
 	BinSize      types.Int64      `tfsdk:"bin_size"`
 	MaxBins      types.Int64      `tfsdk:"max_bins"`
 	PolicyBins   []PolicyBinModel `tfsdk:"policy_bins"`
@@ -120,21 +127,21 @@ func (d *AwsIamPolicySplitterDataSource) Read(
 	}
 
 	// Apply defaults
-	binSize := int64(6144)
+	binSize := int64(defaultBinSize)
 	if !data.BinSize.IsNull() && !data.BinSize.IsUnknown() {
 		binSize = data.BinSize.ValueInt64()
 	}
 	data.BinSize = types.Int64Value(binSize)
 
-	maxBins := int64(10)
+	maxBins := int64(defaultMaxBins)
 	if !data.MaxBins.IsNull() && !data.MaxBins.IsUnknown() {
 		maxBins = data.MaxBins.ValueInt64()
 	}
 	data.MaxBins = types.Int64Value(maxBins)
 
 	// Convert policy JSON strings to plain strings
-	items := make([]string, len(data.JsonPolicies))
-	for i, policy := range data.JsonPolicies {
+	items := make([]string, len(data.JSONPolicies))
+	for i, policy := range data.JSONPolicies {
 		items[i] = policy.ValueString()
 	}
 

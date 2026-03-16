@@ -8,6 +8,10 @@ import (
 	"sort"
 )
 
+// maxTruncateLen is the maximum number of characters shown in error messages
+// to avoid leaking sensitive policy data.
+const maxTruncateLen = 50
+
 // Bin represents a single bin containing packed strings.
 type Bin struct {
 	Items         []string
@@ -66,7 +70,7 @@ func BestFitWithSizes(items []string, sizes []int, numBins int, binSize int) ([]
 				"item of size %d exceeds bin size %d (prefix: %q)",
 				sizes[i],
 				binSize,
-				truncate(item, 50),
+				truncate(item, maxTruncateLen),
 			)
 		}
 	}
@@ -97,7 +101,7 @@ func BestFitWithSizes(items []string, sizes []int, numBins int, binSize int) ([]
 		if bestIdx < 0 {
 			return nil, fmt.Errorf(
 				"cannot fit item of size %d into %d bins of size %d (prefix: %q)",
-				si.size, numBins, binSize, truncate(si.item, 50),
+				si.size, numBins, binSize, truncate(si.item, maxTruncateLen),
 			)
 		}
 
