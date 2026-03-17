@@ -342,3 +342,4 @@ linter-output/
 bin/
 .claude/
 .ralph/
+.ralphrc
