@@ -8,14 +8,14 @@ version: 2
 updates:
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "docker" # See documentation for possible values
-    directory: "/" # Location of package manifests
+    cooldown:
+      default-days: 7
     schedule:
       interval: "daily"
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/.github" # Location of package manifests
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
 
