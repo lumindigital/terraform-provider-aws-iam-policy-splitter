@@ -17,8 +17,9 @@ tasks:
     cmds:
       - gofmt -s -w -e .
   local:generate:
+    dir: tools
     cmds:
-      - cd tools; go generate ./...
+      - go generate ./...
   local:testacc:
     cmds:
       - TF_ACC=1 go test -v -cover -timeout 120m ./...

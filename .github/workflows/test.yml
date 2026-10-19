@@ -8,8 +8,8 @@ permissions:
   contents: read # for checkout
 
 jobs:
-  release:
-    name: release
+  pr-test:
+    name: pr-test
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -24,5 +24,22 @@ jobs:
         uses: go-task/setup-task@v2
         with:
           version: 3.x 
-      - name: run tests
-        run: task local:all
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+      - name: Verify Dependencies
+        run: go mod verify
+      - name: Run fmt
+        run: task local:fmt
+      - name: Run test
+        run: task local:test
+      - name: Run testacc
+        run: task local:testacc
+      - name: Run build
+        run: task local:build
+      - name: Run install
+        run: task local:install
+      - name: Run generate
+        run: task local:generate
