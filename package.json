@@ -7,15 +7,15 @@
     "juno": "bin/run.js"
   },
   "bugs": "https://github.com/lumindigital/terraform-provider-aws-iam-policy-splitter/issues",
-
   "devDependencies": {
-    "@commitlint/cli": "21",
-    "@commitlint/config-conventional": "^21.0.1",
-    "semantic-release": "^25"
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "conventional-changelog-writer": "^9.3.0",
+    "semantic-release": "^25.0.9"
   },
   "engines": {
     "node": ">=24.0.0"
-  },  
+  },
   "homepage": "https://github.com/lumindigital/terraform-provider-aws-iam-policy-splitter",
   "keywords": [
     "oclif"
